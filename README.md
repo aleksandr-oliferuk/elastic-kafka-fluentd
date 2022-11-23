@@ -2,7 +2,7 @@
 
 ## Описание:
 
-Данный [плейбук](playbook.yml) выполняет конфигурацию учебного стенда. Описание станда в файле [inventory/hosts.ini]().
+Данный [плейбук](playbook.yml) выполняет конфигурацию учебного стенда. Описание станда в файле [inventory/hosts.ini](inventory/hosts.ini).
 
 Стенд состоит из 7-ми хостов. На 3 ноды группы **es** устанавливается [elasticsearch](roles/elasticsearch/tasks/main.yml), на **log-aggregator** запускаются [apache kafka](roles/kafka/tasks/main.yml), [td-agent](roles/fluentd/tasks/main.yml) и [kibana](roles/kibana/tasks/main.yml). На серверах группы **app** устанавливается только td-agent.
 
@@ -14,7 +14,7 @@
 
 ## Применение
 
-Перед запуском заполнить адреса в файле [inventory/hosts.ini]() (ansible_hosts).
+Перед запуском заполнить адреса в файле [inventory/hosts.ini](inventory/hosts.ini) (ansible_hosts).
 
 Запуск:
 ```
