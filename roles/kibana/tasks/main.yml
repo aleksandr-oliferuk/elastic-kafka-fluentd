@@ -1,0 +1,44 @@
+---
+- name: Install elastic gpg key
+  ansible.builtin.apt_key:
+    url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    state: present
+
+- name: Add elastic repository
+  ansible.builtin.lineinfile:
+    path: /etc/apt/sources.list
+    line: deb https://artifacts.elastic.co/packages/{{ elastic_major_version }}.x/apt stable main
+
+- name: Install kibana and nginx
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  loop:
+    - kibana
+    - nginx
+
+- name: Install nginx config
+  ansible.builtin.template:
+    src: kibana-nginx.conf.j2
+    dest: /etc/nginx/sites-enabled/kibana-nginx.conf
+
+- name: Remove default nginx config
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Apply kibana config
+  ansible.builtin.template:
+    src: kibana.yml.j2
+    dest: /etc/kibana/kibana.yml
+
+- name: Start kibana and nginx services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: restarted
+    enabled: yes
+  loop:
+    - kibana
+    - nginx
+...

@@ -1,0 +1,14 @@
+cluster.name: es
+node.name: {{ inventory_hostname }}
+node.roles: [master, data]
+http.port: 9200
+http.host: {{ ansible_facts.eth1.ipv4.address }}
+network.host: {{ ansible_facts.eth1.ipv4.address }}
+discovery.seed_hosts: ["{{ es1_ip }}","{{ es2_ip }}","{{ es3_ip }}"]
+cluster.initial_master_nodes: ["es1", "es2", "es3"]
+path.data: /var/lib/elasticsearch
+path.logs: /var/log/elasticsearch
+node.attr.box_type: "hot"
+xpack.security.enabled: false
+xpack.security.http.ssl.enabled: false
+xpack.security.transport.ssl.enabled: false

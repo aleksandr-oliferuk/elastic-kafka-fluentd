@@ -1,0 +1,82 @@
+---
+- hosts: all
+  tasks:
+    - name: Get internal IP
+      command: echo {{ ansible_facts.eth1.ipv4.address }}
+      register: internal_ip
+
+    - debug:
+        msg: "{{ internal_ip.stdout }}"
+
+    - name: Wait for 10 minutes, cause of dpkg locks
+      ansible.builtin.pause:
+        minutes: 10
+
+- hosts: all
+  become: yes
+  strategy: free
+  vars:
+    - elastic_major_version: 8
+    - kafka_version: 3.3.1
+    - es1_ip:
+    - es2_ip:
+    - es3_ip:
+    - kafka_ip:
+  tasks:
+    - name: Get locker id for lock-frontend
+      shell: lsof /var/lib/dpkg/lock-frontend|awk '{print $2}'|grep -v PID
+      register: locker_id
+      ignore_errors: yes
+
+    - name: Unlock dpkg
+      shell: kill -9 {{ locker_id.stdout }}
+      ignore_errors: yes
+
+    - name: Update repo lists and updgrade packages
+      ansible.builtin.apt:
+        name: "*"
+        state: latest
+        update_cache: yes
+
+    - name: Install default-jre and apt-transport-https
+      ansible.builtin.apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - default-jre
+        - apt-transport-https
+
+    - name: Setup elasticsearch cluster
+      include_role:
+        name: elasticsearch
+      when: inventory_hostname in groups['es']
+
+    - name: Setup log aggregator
+      include_role:
+        name: "{{ role }}"
+      loop:
+        - kibana
+        - kafka
+      loop_control:
+        loop_var: role
+      when: inventory_hostname in groups['aggregator']
+
+    - name: Setup td-agent
+      include_role:
+        name: fluentd
+      when: inventory_hostname in groups['aggregator'] or inventory_hostname in groups['app']
+
+    - name: Apply permissions for log dirs
+      ansible.builtin.file:
+        path: "{{ directory }}"
+        state: directory
+        recurse: true
+        owner: td-agent
+        group: td-agent
+      loop:
+        - /var/log/nginx
+        - /var/lib/docker/containers
+      loop_control:
+        loop_var: directory
+      when: inventory_hostname in groups['app']
+...

@@ -1,0 +1,38 @@
+---
+- name: Setup virtual memory
+  ansible.builtin.lineinfile: 
+    path: /etc/sysctl.conf
+    line: vm.max_map_count=262144
+
+- name: Apply vm changes
+  command: sysctl -p
+
+- name: Install elastic gpg key
+  ansible.builtin.apt_key:
+    url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    state: present
+
+- name: Add elastic repository
+  ansible.builtin.lineinfile:
+    path: /etc/apt/sources.list
+    line: deb https://artifacts.elastic.co/packages/{{ elastic_major_version }}.x/apt stable main
+
+- name: Install elasticsearch
+  ansible.builtin.apt:
+    name: elasticsearch
+    state: present
+    update_cache: yes
+
+- name: Apply elastic cluster config
+  ansible.builtin.template:
+    src: elasticsearch.yml.j2
+    dest: /etc/elasticsearch/elasticsearch.yml
+    owner: elasticsearch
+    group: elasticsearch
+
+- name: Start and enable elasticsearch service
+  ansible.builtin.systemd:
+    name: elasticsearch
+    state: started
+    enabled: yes
+...

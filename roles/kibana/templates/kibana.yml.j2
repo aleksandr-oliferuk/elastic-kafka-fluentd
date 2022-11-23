@@ -1,0 +1,5 @@
+server.port: 5601
+server.host: "localhost"
+server.publicBaseUrl: "http://{{ ansible_host }}"
+server.name: "logs-aggregator"
+elasticsearch.hosts: ["http://{{ es1_ip }}:9200","http://{{ es2_ip }}:9200","http://{{ es3_ip }}:9200"]

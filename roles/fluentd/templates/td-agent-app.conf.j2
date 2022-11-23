@@ -1,0 +1,114 @@
+<source>
+    @type tail
+    @id in_tail_nginx_logs
+    #@log_level trace
+    path /var/log/nginx/*.log
+    pos_file /var/log/td-agent/buffers/nginx.pos
+    read_from_head true
+    follow_inodes true
+    refresh_interval 5s
+    tag "{{ inventory_hostname }}.nginx"
+    <parse>
+      @type nginx
+    </parse>
+</source>
+
+<source>
+    @type tail
+    @id in_tail_container_logs
+    #@log_level trace
+    path /var/lib/docker/containers/**/*-json.log
+    pos_file /var/log/td-agent/buffers/docker.log.pos
+    read_from_head true
+    follow_inodes true
+    refresh_interval 5s
+    tag "{{ inventory_hostname }}.docker"
+    <parse>
+      @type json
+    </parse>
+</source>
+
+<match {{ inventory_hostname }}.nginx.**>
+    @type kafka2
+    #@log_level trace
+    brokers {{ kafka_ip }}:9092
+    use_event_time true
+
+    <buffer>
+      @type file
+      path /var/log/td-agent/buffer/nginx
+      flush_interval 10s
+    </buffer>
+
+    default_topic nginx-logs
+    <format>
+      @type json
+    </format>
+
+    compression_codec gzip
+    max_send_retries 3
+    required_acks -1
+
+    <inject>
+        time_key time
+        time_type string
+        time_format %Y-%m-%dT%H:%M:%S.%NZ
+        tag_key tag
+        hostname_key hostname
+    </inject>
+</match>
+
+<match {{ inventory_hostname }}.docker.**>
+    @type kafka2
+    #@log_level trace
+    brokers {{ kafka_ip }}:9092
+    use_event_time true
+
+    <buffer>
+      @type file
+      path /var/log/td-agent/buffer/docker
+      flush_interval 10s
+    </buffer>
+
+    default_topic docker-logs
+    <format>
+      @type json
+    </format>
+
+    compression_codec gzip
+    max_send_retries 3
+    required_acks -1
+    <inject>
+        time_key time
+        time_type string
+        time_format %Y-%m-%dT%H:%M:%S.%NZ
+        tag_key tag
+        hostname_key hostname
+    </inject>
+</match>
+
+# <match {{ inventory_hostname }}.nginx.**>
+#     @type file
+#     path /var/log/td-agent/nginx
+#     append true
+#     <inject>
+#         time_key time
+#         time_type float
+#         #time_format %Y-%m-%dT%H:%M:%S.%NZ # for string type
+#         tag_key tag
+#         hostname_key hostname
+#     </inject>
+# </match>
+
+# <match {{ inventory_hostname }}.docker.**>
+#     @type file
+#     path /var/log/td-agent/docker
+#     append true
+#     <inject>
+#         time_key time
+#         time_type float
+#         #time_format %Y-%m-%dT%H:%M:%S.%NZ # for string type
+#         tag_key tag
+#         hostname_key hostname
+#     </inject>
+# </match>

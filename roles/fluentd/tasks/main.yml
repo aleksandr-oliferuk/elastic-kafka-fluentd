@@ -1,0 +1,27 @@
+---
+- name: Get td-agent installation script
+  ansible.builtin.get_url:
+    url: https://toolbelt.treasuredata.com/sh/install-ubuntu-{{ lsb_release }}-td-agent4.sh
+    dest: /tmp/td-agent4.sh
+
+- name: Install td-agent
+  command: sh /tmp/td-agent4.sh
+
+- name: Apply td-agent config
+  ansible.builtin.template:
+    src: "{{ td_agent_conf }}"
+    dest: /etc/td-agent/td-agent.conf
+
+- name: Install elasticsearch plugin for fluentd
+  command: td-agent-gem install fluent-plugin-elasticsearch
+  when: inventory_hostname in groups['aggregator']
+
+- name: Install fluentd kafka plugin
+  command: td-agent-gem install fluent-plugin-kafka
+
+- name: Restart and enable td-agent service
+  ansible.builtin.systemd:
+    name: td-agent
+    state: restarted
+    enabled: yes
+...

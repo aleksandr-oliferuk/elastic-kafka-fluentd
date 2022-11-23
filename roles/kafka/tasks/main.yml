@@ -1,0 +1,78 @@
+---
+- name: Create kafka group
+  ansible.builtin.group:
+    name: kafka
+    state: present
+    
+- name: Create kafka user
+  ansible.builtin.user:
+    name: kafka
+    group: kafka
+
+- name: Get kafka
+  ansible.builtin.unarchive:
+    src: https://dlcdn.apache.org/kafka/{{ kafka_version }}/kafka_2.13-{{ kafka_version }}.tgz
+    dest: /opt
+    remote_src: yes
+    owner: kafka
+    group: kafka
+
+- name: Remove previous installation
+  ansible.builtin.file:
+    path: /opt/kafka
+    state: absent
+  loop:
+    - /opt/kafka
+    - /opt/zookeeper
+    - /var/log/kafka
+
+- name: Create symbolic link to default kafka path
+  ansible.builtin.file:
+    src: /opt/kafka_2.13-{{ kafka_version }}
+    dest: /opt/kafka
+    state: link
+    owner: kafka
+    group: kafka
+
+- name: Create zookeeper and kafka working dirs
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: kafka
+    group: kafka
+  loop:
+    - /opt/zookeeper
+    - /var/log/kafka
+
+- name: Install kafka, zookeeper as systemd units
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /etc/systemd/system
+  loop:
+    - zookeeper.service
+    - kafka.service
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Apply kafka config
+  ansible.builtin.template:
+    src: kafka.server.properties.j2
+    dest: /opt/kafka/config/server.properties
+    owner: kafka
+    group: kafka
+
+- name: Apply zookeeper config
+  ansible.builtin.copy:
+    src: zookeeper.properties
+    dest: /opt/kafka/config/zookeeper.properties
+    owner: kafka
+    group: kafka
+
+- name: Start and enable kafka
+  ansible.builtin.systemd:
+    name: kafka
+    state: started
+    enabled: yes
+...

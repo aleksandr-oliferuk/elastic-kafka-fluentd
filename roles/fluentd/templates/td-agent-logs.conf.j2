@@ -1,0 +1,33 @@
+<source>
+  @type kafka
+  #@log_level trace
+  brokers {{ ansible_facts.eth1.ipv4.address }}:9092
+  topics nginx-logs
+  format json
+  add_prefix kafka.nginx
+</source>
+
+<source>
+  @type kafka
+  #@log_level trace
+  brokers {{ ansible_facts.eth1.ipv4.address }}:9092
+  topics docker-logs
+  format json
+  add_prefix kafka.docker
+</source>
+
+<match kafka.nginx.**>
+  @type elasticsearch
+  #@log_level trace
+  hosts http://{{ es1_ip }}:9200,http://{{ es2_ip }}:9200,http://{{ es3_ip }}:9200
+  index_name nginx-logs
+  logstash_format false
+</match>
+
+<match kafka.docker.**>
+  @type elasticsearch
+  #@log_level trace
+  hosts http://{{ es1_ip }}:9200,http://{{ es2_ip }}:9200,http://{{ es3_ip }}:9200
+  index_name docker-logs
+  logstash_format false
+</match>
